@@ -1,12 +1,13 @@
 """Bundle local source assets into a single Apps Script HTML Service file."""
 from pathlib import Path
 import re
+import json
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'src'
 
 
-def bundle():
+def bundle(templates=None):
     html = (SRC / 'index.html').read_text(encoding='utf-8')
 
     def css(match):
@@ -26,6 +27,11 @@ def bundle():
 
     html = re.sub(r'<link rel="stylesheet" href="([^"]+)">', css, html)
     html = re.sub(r'<script src="([^"]+)"></script>', js, html)
+    if templates is not None:
+        marker = 'window.REPORT_TEMPLATES={};'
+        if html.count(marker) != 1:
+            raise ValueError('Template initialization marker is missing or duplicated')
+        html = html.replace(marker, 'window.REPORT_TEMPLATES=' + json.dumps(templates, separators=(',', ':')) + ';', 1)
     if re.search(r'<(?:script[^>]* src=|link[^>]*stylesheet)', html):
         raise ValueError('External assets remain in GAS output')
     return html

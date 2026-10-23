@@ -1,6 +1,6 @@
 // オフライン配布版。CSV一括取込は csv-intake.js と連携。
 (()=>{'use strict';
-// 計算ルール。率は 30% = 0.30。変更後は tests/model.test.mjs を実行してください。
+// 計算ルール。率は 30% = 0.30。変更後は tests/core.test.mjs を実行してください。
 const RULES = {
   singleMaxDays: 3660,
   maxCampaigns: 10,

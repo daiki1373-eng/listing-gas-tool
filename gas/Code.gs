@@ -26,6 +26,10 @@ function doGet() {
 }
 
 /** 初回だけエディターから実行。Driveへ置いた2つの原本PPTXを登録する。 */
+function setupReportTemplates() {
+  return setupReportTemplates_();
+}
+
 function setupReportTemplates_() {
   const props = PropertiesService.getScriptProperties();
   const registered = {};

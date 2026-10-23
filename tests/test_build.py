@@ -25,6 +25,12 @@ class BuildTest(unittest.TestCase):
         self.assertIn("single: ''", code)
         self.assertIn("multi: ''", code)
 
+    def test_offline_bundle_uses_supplied_templates_without_changing_gas(self):
+        offline = build.bundle({'single':'UEs-test-single','multi':'UEs-test-multi'})
+        self.assertIn('"single":"UEs-test-single"', offline)
+        self.assertIn('"multi":"UEs-test-multi"', offline)
+        self.assertIn('window.REPORT_TEMPLATES={};', build.bundle())
+
 
 if __name__ == '__main__':
     unittest.main()

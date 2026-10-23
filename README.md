@@ -1,6 +1,12 @@
 # リスティングCSV → PowerPoint（GAS版）
 
-リスティング広告のCSVを読み込み、実績・日予算・キーワード分析を編集可能なPowerPointにまとめるWebアプリです。Google Apps Script の HTML Service で配信します。アプリのバージョンは **v1.6** です。
+リスティング広告のCSVを読み込み、実績・日予算・キーワード分析を編集可能なPowerPointにまとめるWebアプリです。Google Apps Script の HTML Service で配信できます。アプリのバージョンは **v1.7** です。
+
+## 別のPC・GASで使う
+
+テンプレートを含む配布用ZIPでは、展開後に **`start.html` を開くだけ**で、CSVからPowerPointを作成できます。Python・Node.js・Googleへのログインは不要です。
+
+GitHub版や新しいGASでは、画面の「PowerPointテンプレート」から対応PPTXを選択できます。テンプレートをDriveへ登録する方法も引き続き利用できます。[別PC・別GASでの導入手順](docs/別PC・別GASで使う.md)を参照してください。
 
 ## 主な機能
 
@@ -23,15 +29,16 @@ CSVの内容、分析結果、出力PPTXはブラウザー内で処理します�
 | `gas/appsscript.json` | 新規GASプロジェクト用のマニフェスト |
 | `src/` | 編集用HTML・CSS・JavaScript |
 | `scripts/build.py` | CSS・JavaScriptをHTML内にまとめるビルダー |
+| `scripts/package.py` | 手元のPPT原本を含む、別PC向けZIPを作成 |
 | `examples/` | 架空のCSVサンプル |
 | `tests/` | 集計・除外条件・ビルドの回帰テスト |
 
 ## GASへの導入
 
-1. **このツールに対応する原本PPTテンプレート2種類**をGoogle Driveへアップロードします。ファイル名は `ListingTemplateSingle.pptx` と `ListingTemplateMulti.pptx` にし、PPTXのまま保存します。
+1. **このツールに対応する原本PPTテンプレート2種類**を用意します。Driveから読み込む場合は、ファイル名を `ListingTemplateSingle.pptx` と `ListingTemplateMulti.pptx` にしてGoogle Driveへアップロードします。PPTXのまま保存します。
 2. Apps Scriptプロジェクトに `gas/Code.gs` を保存します。HTMLファイルを **Index** という名前で作成し、`gas/Index.html` 全体を保存します。
 3. `gas/appsscript.json` を参考に、必要なDrive読み取りスコープを設定します。既存プロジェクトでは他の設定・スコープを保持してください。
-4. `Code.gs` 冒頭の `REPORT_TEMPLATE_IDS` にテンプレートのDrive IDを設定するか、`setupReportTemplates_` を一度実行してファイル名から登録します。
+4. `Code.gs` 冒頭の `REPORT_TEMPLATE_IDS` にテンプレートのDrive IDを設定するか、`setupReportTemplates` を一度実行してファイル名から登録します。画面上で対応PPTXを選択して利用する場合はDriveへの登録を省略できます。
 5. ウェブアプリとしてデプロイし、実行ユーザーを自分、利用範囲を必要な範囲に設定します。まずは **自分のみ** で確認できます。
 6. 発行されたWebアプリの `/exec` URLを開きます。`file:///.../gas/Index.html` からはGASのテンプレート取得を実行できません。
 
@@ -68,12 +75,18 @@ KWと日別実績の対象期間が一致しない場合、キーワード内の
 ```sh
 python scripts/build.py
 python -m unittest discover -s tests -p "test_*.py"
-node --test tests/core.test.mjs
+node --test tests/core.test.mjs tests/templates.test.mjs
 ```
 
 `src/` を編集してビルドし、更新された `gas/Index.html` をGASへ反映してください。GitHubへのpushだけではGASには自動デプロイされません。
 
-`src/index.html` はローカルでも画面・CSV分析を確認できます。PowerPoint出力には、GAS上で登録テンプレートを取得できる環境が必要です。
+`src/index.html` や `gas/Index.html` をローカルで開き、画面から対応PPTXを選択する方法でも出力できます。テンプレートを同梱した `start.html` では、この選択も不要です。
+
+原本2つを `private/templates/` に置いた後、次のコマンドで別PC用の一式を作れます。ファイル名や詳細は[導入手順](docs/別PC・別GASで使う.md)を参照してください。
+
+```sh
+python scripts/package.py --templates-dir ./private/templates --output ./dist/listing-gas-tool-portable.zip
+```
 
 ## 公開用データの扱い
 

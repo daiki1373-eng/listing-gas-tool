@@ -18,6 +18,7 @@
 templates/
 private/
 output/
+dist/
 qa/
 
 # Runtime files
