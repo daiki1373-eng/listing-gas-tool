@@ -1,0 +1,11 @@
+{
+  "name": "listing-gas-tool",
+  "version": "1.6.0",
+  "private": true,
+  "description": "Listing CSV to editable PowerPoint using Google Apps Script",
+  "scripts": {
+    "test": "node --test tests/core.test.mjs",
+    "build": "python scripts/build.py"
+  },
+  "engines": {"node": ">=20"}
+}

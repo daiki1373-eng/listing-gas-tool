@@ -1,0 +1,28 @@
+# Local credentials / deployment settings
+.env
+.env.*
+!.env.example
+.clasp.json
+.clasprc.json
+*credentials*.json
+*token*.json
+
+# Client inputs, templates and generated reports
+*.csv
+!examples/*.csv
+*.pptx
+*.xlsm
+*.xlsx
+*.pdf
+*.zip
+templates/
+private/
+output/
+qa/
+
+# Runtime files
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
