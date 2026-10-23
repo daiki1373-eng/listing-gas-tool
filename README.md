@@ -1,12 +1,18 @@
 # リスティングCSV → PowerPoint（GAS版）
 
-リスティング広告のCSVを読み込み、実績・日予算・キーワード分析を編集可能なPowerPointにまとめるWebアプリです。Google Apps Script の HTML Service で配信できます。アプリのバージョンは **v1.7** です。
+リスティング広告のCSVを読み込み、実績・日予算・キーワード分析を編集可能なPowerPointにまとめるWebアプリです。Google Apps Script の HTML Service で配信できます。アプリのバージョンは **v1.8** です。
 
 ## 別のPC・GASで使う
 
 テンプレートを含む配布用ZIPでは、展開後に **`start.html` を開くだけ**で、CSVからPowerPointを作成できます。Python・Node.js・Googleへのログインは不要です。
 
 GitHub版や新しいGASでは、画面の「PowerPointテンプレート」から対応PPTXを選択できます。テンプレートをDriveへ登録する方法も引き続き利用できます。[別PC・別GASでの導入手順](docs/別PC・別GASで使う.md)を参照してください。
+
+## v1.8のレイアウト修正
+
+日別表の行高・段落書式を統一し、PowerPointで開いたときに下端が押し出される問題を修正しました。表は全行を一度ずつ出力し、各ページに対象日付・行番号・続きのページ番号を表示します。
+
+長い日別グラフは1ページ最大20行で均等に分け、前ページの最終日を次ページの先頭にも表示します。日別表も最後のページだけが少数行にならないよう均等に分割します。各指標の縦軸は全ページで共通です。日付ラベルを短くし、値が0以上の指標は縦軸の最小値を0にします。
 
 ## 主な機能
 
@@ -75,7 +81,7 @@ KWと日別実績の対象期間が一致しない場合、キーワード内の
 ```sh
 python scripts/build.py
 python -m unittest discover -s tests -p "test_*.py"
-node --test tests/core.test.mjs tests/templates.test.mjs
+node --test tests/core.test.mjs tests/templates.test.mjs tests/report-flow.test.mjs
 ```
 
 `src/` を編集してビルドし、更新された `gas/Index.html` をGASへ反映してください。GitHubへのpushだけではGASには自動デプロイされません。

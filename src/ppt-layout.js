@@ -28,11 +28,11 @@ window.ReportPptLayout = (() => {
     let size=base,lines;
     do{
       lines=allowWrap?wrap(value,size,maxWidth,bold):String(value).split(/\r?\n/);
-      if(lines.every(line=>width(line,size,bold)<=maxWidth)&&lines.length*size*1.25<=maxHeight)break;
+      if(lines.every(line=>width(line,size,bold)<=maxWidth)&&lines.length*size*1.35<=maxHeight)break;
       size-=0.25;
     }while(size>=8.5);
     if(size<8.5)throw Error('文字量が多いため表に収まりません。キャンペーン名・キーワードを短くするか、行を分けてください。');
-    return {size,lines,height:lines.length*size*1.25};
+    return {size,lines,height:lines.length*size*1.35};
   }
   function write(owner,value,options){
     const body=child(owner,'txBody')||all(owner,'txBody')[0];if(!body)return;
@@ -47,14 +47,17 @@ window.ReportPptLayout = (() => {
     for(const line of lines){
       const p=node(doc,'p'),pr=oldPr?oldPr.cloneNode(true):node(doc,'pPr');pr.setAttribute('algn',options.align||pr.getAttribute('algn')||'l');pr.setAttribute('marL','0');pr.setAttribute('indent','0');
       for(const e of [...pr.children].filter(n=>/^(lnSpc|spcBef|spcAft|defRPr|buChar|buAutoNum|buBlip)$/.test(n.localName)))e.remove();
-      const spacing=node(doc,'lnSpc');spacing.append(node(doc,'spcPct',{val:100000}));pr.prepend(spacing);
+      const spacing=node(doc,'lnSpc');spacing.append(node(doc,'spcPts',{val:Math.ceil(options.size*1.35*100)}));pr.prepend(spacing);
       for(const name of ['spcBef','spcAft']){const sp=node(doc,name);sp.append(node(doc,'spcPts',{val:0}));pr.append(sp);}p.append(pr);
       const r=node(doc,'r'),rpr=oldRun?oldRun.cloneNode(true):node(doc,'rPr');
       if(rpr.localName!=='rPr'){const fresh=node(doc,'rPr');for(const attr of rpr.attributes)fresh.setAttribute(attr.name,attr.value);for(const e of rpr.childNodes)fresh.append(e.cloneNode(true));rpr.replaceWith?.(fresh);rpr.textContent='';r.append(fresh);}else r.append(rpr);
       const actual=child(r,'rPr');actual.setAttribute('sz',String(Math.round(options.size*100)));actual.setAttribute('b',options.bold?'1':'0');
       for(const e of [...actual.children].filter(n=>/Fill$/.test(n.localName)))e.remove();const fill=node(doc,'solidFill');fill.append(node(doc,'srgbClr',{val:options.color||'243140'}));actual.prepend(fill);
       for(const name of ['latin','ea']){let font=child(actual,name);if(!font){font=node(doc,name);actual.append(font);}font.setAttribute('typeface','Meiryo UI');}
-      const t=node(doc,'t');t.textContent=line;r.append(t);p.append(r);body.append(p);
+      // 段落末尾にマスター由来の大きいフォントを継承すると、PowerPointが表の行高を拡張する。
+      const defaults=node(doc,'defRPr');for(const attr of actual.attributes)defaults.setAttribute(attr.name,attr.value);for(const e of actual.childNodes)defaults.append(e.cloneNode(true));pr.append(defaults);
+      const end=node(doc,'endParaRPr');for(const attr of actual.attributes)end.setAttribute(attr.name,attr.value);for(const e of actual.childNodes)end.append(e.cloneNode(true));
+      const t=node(doc,'t');t.textContent=line;r.append(t);p.append(r,end);body.append(p);
     }
   }
   function tableInfo(doc,name){
@@ -68,7 +71,7 @@ window.ReportPptLayout = (() => {
     if(name==='KWランキング')return {font:10.5,headerFont:10,header:1,headerHeight:35,rowHeight:25,maxRows:10,bottom:378};
     if(name==='時間別実績')return {font:11,headerFont:10.5,header:1,headerHeight:32,rowHeight:22,maxRows:16,bottom:395,widths:[70,61,61,47,49,64,48,47,64,54,64]};
     if(name==='現在設定一覧'||/^推奨設定[①②]$/.test(name))return {font:11,headerFont:10.5,header:1,headerHeight:32,rowHeight:30,maxRows:5,bottom:391,widths:null};
-    if(name==='日別実績')return {font:10,headerFont:10,header:1,headerHeight:28,rowHeight:19.2,maxRows:20,bottom:474,widths:[78,58,58,44,48,62,46,44,62,52,62]};
+    if(name==='日別実績')return {font:10.5,headerFont:10.5,header:1,headerHeight:32.5,rowHeight:21,maxRows:17,bottom:464,widths:[78,58,58,44,48,62,46,44,62,52,62]};
     if(name==='月別実績')return {font:12,headerFont:11,header:1,headerHeight:38,rowHeight:23.5,maxRows:12,bottom:381};
     if(name==='日予算到達')return {font:11.5,headerFont:11,header:2,headerHeight:22,rowHeight:31,maxRows:10,bottom:460,widths:[105,42,52,75,62,62,70,70,122]};
     if(name==='日別予算到達状況')return {font:10.5,headerFont:11,header:1,headerHeight:24,rowHeight:20,maxRows:14,bottom:482};
@@ -79,9 +82,11 @@ window.ReportPptLayout = (() => {
     return {font:null,headerFont:null,header:1,headerHeight:null,rowHeight:null,maxRows:100,bottom:482};
   }
   function configure(frame,tbl,name){
-    const spec=profile(name),b=box(frame),cols=all(tbl,'gridCol');
+    const spec=profile(name),cols=all(tbl,'gridCol');
+    if(name==='日別実績')move(frame,{x:22,y:72,w:676});
+    const b=box(frame);
     if(name==='現在設定一覧'||/^推奨設定[①②]$/.test(name))spec.widths=cols.length===5?[116,59,104,164,205]:[58,115,211,264];
-    if(spec.widths&&cols.length===spec.widths.length){const total=cols.reduce((s,c)=>s+Number(c.getAttribute('w')),0),sum=spec.widths.reduce((a,b)=>a+b,0);cols.forEach((c,i)=>c.setAttribute('w',String(Math.round(total*spec.widths[i]/sum))));}
+    if(spec.widths&&cols.length===spec.widths.length){const total=name==='日別実績'?676*EMU:cols.reduce((s,c)=>s+Number(c.getAttribute('w')),0),sum=spec.widths.reduce((a,b)=>a+b,0);cols.forEach((c,i)=>c.setAttribute('w',String(Math.round(total*spec.widths[i]/sum))));}
     return {...spec,y:b.y,widths:cols.map(c=>pt(c.getAttribute('w')))};
   }
   function sizeOf(cell,fallback=12){return Number((all(cell,'rPr')[0]||all(cell,'endParaRPr')[0])?.getAttribute('sz')||fallback*100)/100;}
@@ -93,13 +98,16 @@ window.ReportPptLayout = (() => {
   }
   function plan(doc,name,rows,start=1,cap=null){
     const {frame,tbl}=tableInfo(doc,name),spec=configure(frame,tbl,name),original=all(tbl,'tr'),limit=Math.min(cap??original.length-start,spec.maxRows);
-    const headerHeight=original.slice(0,start).reduce((sum,r)=>sum+(spec.headerHeight||pt(r.getAttribute('h'))),0),available=spec.bottom-spec.y-headerHeight;
+    const headerHeight=original.slice(0,start).reduce((sum,r)=>sum+all(r,'tc').reduce((h,c,i)=>Math.max(h,(cellFit(text(c),i,spec,true,Number(c.getAttribute('gridSpan')||1)).height+4)/Number(c.getAttribute('rowSpan')||1)),spec.headerHeight||pt(r.getAttribute('h'))),0),available=spec.bottom-spec.y-headerHeight;
+    const rowHeight=row=>{let needed=spec.rowHeight||pt(original[start]?.getAttribute('h')||254000);row.forEach((value,col)=>{const f=cellFit(value,col,spec);needed=Math.max(needed,f.height+4);});return needed;};
     const chunks=[];let chunk=[],height=0;
-    for(const row of rows){let needed=spec.rowHeight||pt(original[start]?.getAttribute('h')||254000);row.forEach((value,col)=>{const f=cellFit(value,col,spec);needed=Math.max(needed,f.height+4);});
+    for(const row of rows){const needed=rowHeight(row);
       if(needed>available)throw Error(`${name}の1行の文字量が多すぎます。文字数を減らしてください。`);
       if(chunk.length&&(height+needed>available||chunk.length>=limit)){chunks.push(chunk);chunk=[];height=0;}chunk.push(row);height+=needed;
     }
-    if(chunk.length)chunks.push(chunk);return chunks.length?chunks:[[]];
+    if(chunk.length)chunks.push(chunk);
+    if(name==='日別実績'&&chunks.length>1){const count=Math.ceil(rows.length/chunks.length),balanced=[];for(let i=0;i<rows.length;i+=count)balanced.push(rows.slice(i,i+count));if(balanced.every(group=>group.reduce((h,row)=>h+rowHeight(row),0)<=available))return balanced;}
+    return chunks.length?chunks:[[]];
   }
   function applyTable(frame,tbl){
     const name=all(frame,'cNvPr')[0]?.getAttribute('name')||'',spec=configure(frame,tbl,name),rows=all(tbl,'tr');let heights=[];
@@ -126,6 +134,8 @@ window.ReportPptLayout = (() => {
     for(const shape of all(doc,'sp')){
       const value=text(shape),b=box(shape);if(!value||!b)continue;
       if(all(shape,'cNvPr')[0]?.getAttribute('name')==='時間曜日別の注記'){const f=fit(value,b.w-32,11,b.h-8,true);write(shape,value,{size:f.size,lines:f.lines,left:16,right:16,top:4,bottom:4,align:'l',wrap:true});}
+      else if(all(shape,'cNvPr')[0]?.getAttribute('name')==='会社名'){const base=sizeOf(shape,18),f=fit(value,b.w-14.4,base,100,true);move(shape,{h:Math.max(b.h,f.height+7.2)});write(shape,value,{size:f.size,lines:f.lines,left:7.2,right:7.2,top:3.6,bottom:3.6,wrap:true});}
+      else if(all(shape,'cNvPr')[0]?.getAttribute('name')==='実績の表示範囲'){const f=fit(value,b.w,10.5,b.h,true);write(shape,value,{size:f.size,lines:f.lines,align:'l',wrap:true});}
       else if(value.startsWith('KW集計期間')){const f=fit(value,b.w-90,12,b.h-8,true);write(shape,value,{size:f.size,lines:f.lines,left:78,right:12,top:4,bottom:4,align:'l',wrap:true});}
       else if(/^(集計期間|設定CSV出力日|設定CSVに記載)/.test(value)&&b.y<50){move(shape,{x:22,y:477,w:676,h:16});write(shape,value,{size:10.5,align:'l',wrap:false});}
       else if(value.startsWith('※弊社管理画面実績')){move(shape,{x:583,w:115,h:16});write(shape,value,{size:10.5,align:'r',wrap:false});}
